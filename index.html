@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Master Offline 2.0</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1e1e2f, #0f0f1b);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+
+    .card {
+      background: #282a36;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #50fa7b;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    label {
+      font-size: 14px;
+      color: #bd93f9;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #44475a;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #ff79c6;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #ff92d0;
+    }
+
+    .timer-container {
+      width: 100%;
+      background: #44475a;
+      height: 10px;
+      border-radius: 5px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: #ff5555;
+      transition: width 1s linear;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: #f1fa8c;
+    }
+
+    .question-text {
+      font-size: 18px;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .opt-btn {
+      background: #44475a;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      font-size: 16px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .opt-btn.correct {
+      background: #50fa7b !important;
+      color: #282a36 !important;
+      font-weight: bold;
+    }
+
+    .opt-btn.wrong {
+      background: #ff5555 !important;
+      color: #fff !important;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .score-title {
+      font-size: 28px;
+      color: #f1fa8c;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="setup-card">
+    <h1>Quiz Master 2.0</h1>
+    <div class="form-group">
+      <label>Categoria:</label>
+      <select id="category-select">
+        <option value="futebol">⚽ Futebol</option>
+        <option value="geral">🧠 Conhecimentos Gerais</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Dificuldade:</label>
+      <select id="difficulty-select">
+        <option value="facil">Fácil</option>
+        <option value="medio">Médio</option>
+        <option value="dificil">Difícil</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Quantidade de Perguntas:</label>
+      <select id="count-select">
+        <option value="5">5 Perguntas</option>
+        <option value="10">10 Perguntas</option>
+        <option value="20">20 Perguntas</option>
+        <option value="30">30 Perguntas</option>
+        <option value="40">40 Perguntas</option>
+        <option value="50">50 Perguntas</option>
+      </select>
+    </div>
+
+    <button onclick="iniciarJogo()">Começar Jogo</button>
+  </div>
+
+  <div class="card hidden" id="quiz-card">
+    <div class="stats">
+      <span id="progress-text">Pergunta 1/10</span>
+      <span id="timer-text">⏱️ 15s</span>
+    </div>
+
+    <div class="timer-container">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
+    <div class="question-text" id="question-text">Pergunta aqui...</div>
+
+    <div class="options-grid" id="options-container"></div>
+  </div>
+
+  <div class="card hidden" id="result-card">
+    <div class="score-title">Fim de Jogo!</div>
+    <p id="final-score" style="font-size: 20px; margin: 20px 0;"></p>
+    <button onclick="voltarMenu()">Jogar Novamente</button>
+  </div>
+
+  <script>
+    // Banco de Perguntas Ampliado (Sem repetições)
+    const bancoPerguntas = {
+      futebol: {
+        facil: [
+          { q: "Quem ganhou a Champions League em 2022?", opts: ["Real Madrid", "Liverpool", "Manchester City", "Chelsea"], ans: 0 },
+          { q: "Qual país venceu a Copa do Mundo de 2022?", opts: ["França", "Argentina", "Brasil", "Croácia"], ans: 1 },
+          { q: "Quantas Bolas de Ouro tem Lionel Messi (até 2023)?", opts: ["7", "8", "6", "5"], ans: 1 },
+          { q: "Em que clube português Cristiano Ronaldo começou a sua carreira profissional?", opts: ["Sporting CP", "SL Benfica", "FC Porto", "SC Braga"], ans: 0 },
+          { q: "Qual clube tem mais títulos da Champions League?", opts: ["AC Milan", "Bayern Munique", "Real Madrid", "Barcelona"], ans: 2 },
+          { q: "Em que país é disputada a Premier League?", opts: ["Espanha", "Inglaterra", "Alemanha", "Itália"], ans: 1 },
+          { q: "Qual jogador é conhecido como 'O Rei do Futebol'?", opts: ["Maradona", "Pelé", "Cruyff", "Eusébio"], ans: 1 },
+          { q: "Quantos jogadores de cada equipa entram em campo num jogo de futebol?", opts: ["10", "11", "12", "9"], ans: 1 },
+          { q: "Em que clube joga atualmente Erling Haaland (2026)?", opts: ["Real Madrid", "PSG", "Manchester City", "Bayern Munique"], ans: 2 },
+          { q: "Qual é o país conhecido como 'Seleção Canarinho'?", opts: ["Colômbia", "Brasil", "Equador", "Austrália"], ans: 1 }
+        ],
+        medio: [
+          { q: "Quem marcou o golo da vitória da Alemanha na final da Copa de 2014?", opts: ["Thomas Müller", "Mario Götze", "Miroslav Klose", "Toni Kroos"], ans: 1 },
+          { q: "Qual seleção venceu o Euro 2016?", opts: ["França", "Inglaterra", "Portugal", "Alemanha"], ans: 2 },
+          { q: "Em que ano o Santos de Pelé venceu a sua primeira Libertadores?", opts: ["1962", "1963", "1970", "1958"], ans: 0 },
+          { q: "Quem foi o treinador do Barcelona no famoso 'Sextete' em 2009?", opts: ["Luis Enrique", "Pep Guardiola", "Frank Rijkaard", "Xavi"], ans: 1 },
+          { q: "Qual é o maior artilheiro da história da Champions League?", opts: ["Lionel Messi", "Robert Lewandowski", "Cristiano Ronaldo", "Karim Benzema"], ans: 2 },
+          { q: "Quem venceu a Copa América de 2021?", opts: ["Brasil", "Argentina", "Colômbia", "Uruguai"], ans: 1 },
+          { q: "Em que ano a Itália venceu o tetra na Copa do Mundo?", opts: ["1994", "2002", "2006", "2010"], ans: 2 },
+          { q: "Qual clube venceu a Copa Libertadores de 2023?", opts: ["Boca Juniors", "Palmeiras", "Fluminense", "Flamengo"], ans: 2 }
+        ],
+        dificil: [
+          { q: "Quem foi o melhor marcador do Euro 2004?", opts: ["Milan Baroš", "Wayne Rooney", "Cristiano Ronaldo", "Angelos Charisteas"], ans: 0 },
+          { q: "Qual seleção venceu a primeira Copa do Mundo em 1930?", opts: ["Argentina", "Uruguai", "Brasil", "Itália"], ans: 1 },
+          { q: "Em que clube jogava Luka Modrić antes de ir para o Real Madrid?", opts: ["Dinamo Zagreb", "Tottenham", "Ajax", "Borussia Dortmund"], ans: 1 },
+          { q: "Quem marcou o golo mais rápido da história da Champions League?", opts: ["Roy Makaay", "Jonas", "Alessandro Del Piero", "Clarence Seedorf"], ans: 0 }
+        ]
+      },
+      geral: {
+        facil: [
+          { q: "Qual é a capital de França?", opts: ["Londres", "Berlim", "Paris", "Madri"], ans: 2 },
+          { q: "Quantos continentes existem no planeta Terra?", opts: ["5", "6", "7", "8"], ans: 1 },
+          { q: "Qual é o maior oceano do mundo?", opts: ["Atlântico", "Índico", "Glacial Ártico", "Pacífico"], ans: 3 },
+          { q: "Qual é o planeta mais próximo do Sol?", opts: ["Vénus", "Marte", "Mercúrio", "Júpiter"], ans: 2 }
+        ],
+        medio: [
+          { q: "Qual é o elemento químico com o símbolo 'O'?", opts: ["Ouro", "Oxigénio", "Ósmio", "Ozono"], ans: 1 },
+          { q: "Em que ano terminou a Segunda Guerra Mundial?", opts: ["1943", "1945", "1950", "1939"], ans: 1 }
+        ],
+        dificil: [
+          { q: "Qual é o país mais pequeno do mundo em área?", opts: ["Mónaco", "Vaticano", "Nauru", "San Marino"], ans: 1 }
+        ]
+      }
+    };
+
+    // Variáveis Globais de Estado do Jogo
+    let perguntasAtuais = [];
+    let indicePergunta = 0;
+    let pontuacao = 0;
+    let tempoRestante = 15;
+    let tempoTotalPergunta = 15;
+    let timerInterval = null;
+
+    // Registo de perguntas já jogadas para evitar repetições
+    let perguntasUsadasIDs = new Set();
+
+    function embaralharArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function calcularTempoPorPatamar(qtd) {
+      if (qtd <= 5) return 20;
+      if (qtd <= 10) return 15;
+      if (qtd <= 20) return 12;
+      return 10; // Para 30, 40 ou 50 perguntas
+    }
+
+    function iniciarJogo() {
+      const cat = document.getElementById("category-select").value;
+      const dif = document.getElementById("difficulty-select").value;
+      const qtdDesejada = parseInt(document.getElementById("count-select").value);
+
+      let listaDisponivel = bancoPerguntas[cat][dif] || [];
+
+      // Filtrar perguntas que ainda NÃO foram usadas
+      let listaNaoUsadas = listaDisponivel.filter(p => !perguntasUsadasIDs.has(p.q));
+
+      // Se todas as perguntas já tiverem sido usadas, limpa o histórico para permitir jogar de novo sem travar
+      if (listaNaoUsadas.length === 0) {
+        perguntasUsadasIDs.clear();
+        listaNaoUsadas = [...listaDisponivel];
+      }
+
+      // Embaralha as perguntas não usadas
+      let listaEmbaralhada = embaralharArray([...listaNaoUsadas]);
+
+      // Seleciona até ao número desejado
+      perguntasAtuais = listaEmbaralhada.slice(0, qtdDesejada);
+
+      // Regista as perguntas selecionadas como "usadas"
+      perguntasAtuais.forEach(p => perguntasUsadasIDs.add(p.q));
+
+      indicePergunta = 0;
+      pontuacao = 0;
+      tempoTotalPergunta = calcularTempoPorPatamar(qtdDesejada);
+
+      document.getElementById("setup-card").classList.add("hidden");
+      document.getElementById("result-card").classList.add("hidden");
+      document.getElementById("quiz-card").classList.remove("hidden");
+
+      mostrarPergunta();
+    }
+
+    function mostrarPergunta() {
+      if (indicePergunta >= perguntasAtuais.length) {
+        finalizarJogo();
+        return;
+      }
+
+      const p = perguntasAtuais[indicePergunta];
+      document.getElementById("progress-text").innerText = `Pergunta ${indicePergunta + 1}/${perguntasAtuais.length}`;
+      document.getElementById("question-text").innerText = p.q;
+
+      const optsContainer = document.getElementById("options-container");
+      optsContainer.innerHTML = "";
+
+      p.opts.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "opt-btn";
+        btn.innerText = opt;
+        btn.onclick = () => responder(idx);
+        optsContainer.appendChild(btn);
+      });
+
+      iniciarTemporizador();
+    }
+
+    function iniciarTemporizador() {
+      clearInterval(timerInterval);
+      tempoRestante = tempoTotalPergunta;
+      atualizarTimerUI();
+
+      timerInterval = setInterval(() => {
+        tempoRestante--;
+        atualizarTimerUI();
+
+        if (tempoRestante <= 0) {
+          clearInterval(timerInterval);
+          responder(-1); // Tempo esgotado
+        }
+      }, 1000);
+    }
+
+    function atualizarTimerUI() {
+      document.getElementById("timer-text").innerText = `⏱️ ${tempoRestante}s`;
+      const pct = (tempoRestante / tempoTotalPergunta) * 100;
+      document.getElementById("timer-bar").style.width = `${pct}%`;
+    }
+
+    function responder(indiceOpcao) {
+      clearInterval(timerInterval);
+      const p = perguntasAtuais[indicePergunta];
+      const botoes = document.querySelectorAll(".opt-btn");
+
+      botoes.forEach(b => b.style.pointerEvents = "none"); // Desativa cliques duplos
+
+      if (indiceOpcao === p.ans) {
+        pontuacao++;
+        if (botoes[indiceOpcao]) botoes[indiceOpcao].classList.add("correct");
+      } else {
+        if (indiceOpcao >= 0 && botoes[indiceOpcao]) botoes[indiceOpcao].classList.add("wrong");
+        if (botoes[p.ans]) botoes[p.ans].classList.add("correct");
+      }
+
+      setTimeout(() => {
+        indicePergunta++;
+        mostrarPergunta();
+      }, 1200);
+    }
+
+    function finalizarJogo() {
+      document.getElementById("quiz-card").classList.add("hidden");
+      document.getElementById("result-card").classList.remove("hidden");
+      document.getElementById("final-score").innerText = `Acertaste ${pontuacao} de ${perguntasAtuais.length} perguntas!`;
+    }
+
+    function voltarMenu() {
+      document.getElementById("result-card").classList.add("hidden");
+      document.getElementById("setup-card").classList.remove("hidden");
+    }
+  </script>
+</body>
+  </html>
